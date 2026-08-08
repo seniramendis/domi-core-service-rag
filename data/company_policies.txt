@@ -1,0 +1,14 @@
+Dopmin Enterprise AI - Internal Operating Guidelines
+
+1. Account Creation Policy:
+   - Standard account setup fee is 25,000 LKR.
+   - Students and non-profits receive a 50% discount (12,500 LKR).
+   - Require client full name, email, and tax ID or NIC number.
+
+2. Support Hours & Response Times:
+   - Standard Client Tier: Mon-Fri, 9 AM - 5 PM. Response within 4 hours.
+   - Enterprise Client Tier: 24/7 dedicated support. Response within 15 minutes.
+
+3. Data Privacy & Security:
+   - All client vector stores are encrypted at rest using AES-256.
+   - No client data is ever transmitted to public cloud models unless explicitly opted in.
