@@ -9,13 +9,14 @@ st.title("⚡ Domi Enterprise Assistant")
 st.caption("Powered by **Dopmin Intelligence Platform** | *Air-Gapped & Offline*")
 st.divider()
 
-# Cache the engine initialization
+
 @st.cache_resource
-def get_domi():
-    return DomiEngine()
+def load_engine(model_name: str = "llama3"):
+    return DomiEngine(model_name=model_name)
+
 
 with st.spinner("Initializing Core Engine... (This may take a minute on first boot)"):
-    domi = get_domi()
+    domi = load_engine("llama3")
 
 # Session State Chat History
 if "messages" not in st.session_state:
@@ -35,8 +36,14 @@ if user_prompt := st.chat_input("Ask Domi about company policies, support hours,
         st.markdown(user_prompt)
 
     with st.chat_message("assistant"):
-        with st.spinner("Analyzing knowledge base..."):
-            answer = domi.query(user_prompt)
-            st.markdown(answer)
+        streamed_chunks = []
+
+        def stream_with_capture(question: str):
+            for chunk in domi.stream_query(question):
+                streamed_chunks.append(chunk)
+                yield chunk
+
+        st.write_stream(stream_with_capture(user_prompt))
+        answer = "".join(streamed_chunks)
 
     st.session_state.messages.append({"role": "assistant", "content": answer})
