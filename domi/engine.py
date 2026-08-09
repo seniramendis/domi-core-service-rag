@@ -21,7 +21,9 @@ class DomiEngine:
 
         # 3. Initialize Memory (ChromaDB)
         self.vector_store = self._initialize_memory()
+        # Limit the database to only return the 2 most relevant chunks.
         self.retriever = self.vector_store.as_retriever(search_kwargs={"k": 2})
+        self.chat_history = []
 
         # 4. Build prompt template for retrieval-augmented prompting
         self.prompt = ChatPromptTemplate.from_messages([
@@ -69,12 +71,26 @@ class DomiEngine:
 
     def _build_context(self, question: str) -> str:
         retrieved_docs = self.retriever.invoke(question)
-        return "\n\n".join(doc.page_content for doc in retrieved_docs)
+        context_text = "\n\n".join(doc.page_content for doc in retrieved_docs)
+
+        if self.chat_history:
+            history_text = "\n\n".join(
+                f"User: {turn['user']}\nAssistant: {turn['assistant']}"
+                for turn in self.chat_history[-2:]
+            )
+            return f"Recent conversation:\n{history_text}\n\nRelevant context:\n{context_text}"
+
+        return context_text
+
+    def _append_history(self, question: str, answer: str) -> None:
+        self.chat_history.append({"user": question, "assistant": answer})
+        self.chat_history = self.chat_history[-2:]
 
     def stream_query(self, question: str):
         """Streams the answer token-by-token from the local Ollama model."""
         context = self._build_context(question)
         messages = self.prompt.format_messages(input=question, context=context)
+        full_response = []
 
         for chunk in self.llm.stream(messages):
             content = chunk.content
@@ -87,7 +103,10 @@ class DomiEngine:
                 content = str(content)
 
             if content:
+                full_response.append(content)
                 yield content
+
+        self._append_history(question, "".join(full_response))
 
     def query(self, question: str) -> str:
         """Sends a question to Domi and returns the response string."""
